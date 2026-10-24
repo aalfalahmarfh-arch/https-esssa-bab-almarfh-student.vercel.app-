@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>سجل خروج الطلاب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --ink:#132B46;
+    --ink-2:#1E3A5C;
+    --paper:#EEF2EE;
+    --paper-2:#E4E9E2;
+    --card:#FBFBF8;
+    --brass:#C08F32;
+    --brass-2:#DDB05C;
+    --sage:#5C7A63;
+    --red:#B34435;
+    --line:#D8D6CC;
+    --shadow: 0 8px 24px rgba(19,43,70,.10);
+    --radius: 14px;
+    font-family:'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(192,143,50,.06), transparent 40%),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    padding:20px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+  .hidden{display:none !important;}
+
+  /* ===== Lock screen ===== */
+  #lockScreen{
+    position:fixed;inset:0;background:var(--ink);
+    display:flex;align-items:center;justify-content:center;z-index:200;
+    padding:20px;
+  }
+  .lock-card{
+    background:var(--card);border-radius:var(--radius);padding:34px 30px;
+    max-width:340px;width:100%;text-align:center;box-shadow:var(--shadow);
+  }
+  .lock-seal{
+    width:64px;height:64px;border-radius:50%;margin:0 auto 14px;
+    background:radial-gradient(circle at 35% 30%, var(--brass-2), var(--brass) 70%);
+    display:flex;align-items:center;justify-content:center;font-size:28px;
+    object-fit:cover;overflow:hidden;
+  }
+  .lock-seal img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+  .lock-card h2{margin:0 0 4px;font-family:'Tajawal';font-weight:800;font-size:17px;}
+  .lock-card p{margin:0 0 18px;font-size:12.5px;color:#7A8A82;}
+  #pinInput{
+    width:100%;text-align:center;font-family:'JetBrains Mono';font-size:24px;letter-spacing:8px;
+    padding:12px;border-radius:9px;border:1.5px solid var(--line);outline:none;direction:ltr;
+  }
+  #pinInput:focus{border-color:var(--brass);box-shadow:0 0 0 3px rgba(192,143,50,.15);}
+  #pinError{color:var(--red);font-size:12.5px;margin-top:8px;min-height:16px;font-weight:600;}
+  .lock-hint{font-size:11px;color:#B7BFB9;margin-top:14px;}
+
+  /* ===== Header / seal ===== */
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+    background:var(--ink);
+    color:#fff;
+    border-radius:var(--radius);
+    padding:18px 22px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 2px, transparent 2px 22px);
+    pointer-events:none;
+  }
+  .brand{display:flex;align-items:center;gap:14px;position:relative;z-index:1;}
+  .seal{
+    width:52px;height:52px;border-radius:50%;flex-shrink:0;
+    background:radial-gradient(circle at 35% 30%, var(--brass-2), var(--brass) 70%);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:20px;color:var(--ink);
+    border:2px solid rgba(255,255,255,.4);
+    overflow:hidden;
+  }
+  .seal img{width:100%;height:100%;object-fit:cover;}
+  .brand h1{margin:0;font-family:'Tajawal';font-weight:900;font-size:20px;letter-spacing:.2px;}
+  .brand p{margin:2px 0 0;font-size:12.5px;color:#C7D2DE;font-weight:400;}
+
+  .clockbox{
+    text-align:left;position:relative;z-index:1;
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:10px;
+    padding:8px 16px;
+    min-width:190px;
+  }
+  .clockbox .time{
+    font-family:'JetBrains Mono';font-size:22px;font-weight:600;letter-spacing:1px;
+    direction:ltr;text-align:center;
+  }
+  .clockbox .date{font-size:12px;color:#C7D2DE;text-align:center;margin-top:2px;}
+  .clockbox .sem{
+    margin-top:6px;text-align:center;font-size:11.5px;font-weight:600;
+    color:var(--ink);
+    background:var(--brass-2);
+    border-radius:20px;padding:3px 10px;display:block;
+  }
+
+  .headerBtns{display:flex;gap:8px;position:relative;z-index:1;}
+  .gear{
+    background:transparent;border:1px solid rgba(255,255,255,.35);
+    color:#fff;width:40px;height:40px;border-radius:10px;
+    cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
+    transition:.15s;
+  }
+  .gear:hover{background:rgba(255,255,255,.12);}
+
+  /* ===== Ticket-style entry card ===== */
+  .ticket{
+    margin-top:22px;
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    display:flex;
+    position:relative;
+  }
+  .ticket .stub{
+    width:64px;flex-shrink:0;
+    background:var(--ink-2);
+    border-radius:var(--radius) 0 0 var(--radius);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+  }
+  .ticket .stub span{
+    color:#fff;font-family:'Tajawal';font-weight:700;font-size:13px;
+    writing-mode:vertical-rl;text-orientation:mixed;letter-spacing:2px;
+  }
+  .ticket .stub::after{
+    content:"";
+    position:absolute; left:-8px; top:0; bottom:0; width:16px;
+    background-image: radial-gradient(circle, var(--paper) 5px, transparent 5.5px);
+    background-size: 16px 22px;
+    background-repeat: repeat-y;
+    background-position: center;
+  }
+  .ticket-body{padding:22px 26px;flex:1;min-width:0;}
+  .ticket-body h2{
+    margin:0 0 16px;font-family:'Tajawal';font-weight:800;font-size:16.5px;
+    color:var(--ink);display:flex;align-items:center;gap:8px;
+  }
+  .ticket-body h2::before{content:"🎫";font-size:16px;}
+
+  .grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;
+  }
+  .grid .full{grid-column:1/-1;}
+  @media(max-width:640px){.grid{grid-template-columns:1fr;}}
+
+  .field label{
+    display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:5px;
+  }
+  .field select, .field input{
+    width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
+    background:#fff;font-family:inherit;font-size:14px;color:var(--ink);
+    outline:none;transition:.15s;
+  }
+  .field select:focus, .field input:focus{border-color:var(--brass);box-shadow:0 0 0 3px rgba(192,143,50,.15);}
+
+  .submit-row{margin-top:18px;display:flex;justify-content:flex-end;}
+  .btn{
+    border:none;cursor:pointer;font-family:'Tajawal';font-weight:700;font-size:14.5px;
+    padding:11px 26px;border-radius:9px;transition:.15s;display:inline-flex;align-items:center;gap:8px;
+  }
+  .btn-main{background:var(--ink);color:#fff;}
+  .btn-main:hover{background:var(--ink-2);}
+  .btn-main:active{transform:scale(.98);}
+  .btn-ghost{background:transparent;color:var(--ink-2);border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--ink-2);}
+  .btn-danger{background:transparent;color:var(--red);}
+  .btn-small{padding:6px 12px;font-size:12.5px;border-radius:7px;}
+
+  /* ===== Table section ===== */
+  .panel{
+    margin-top:20px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:20px 22px;
+  }
+  .panel-head{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;
+  }
+  .panel-head h3{margin:0;font-family:'Tajawal';font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;}
+  .badge-count{
+    background:var(--paper-2);color:var(--ink-2);font-size:12px;font-weight:600;
+    border-radius:20px;padding:2px 10px;
+  }
+  .actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  thead th{
+    text-align:right;font-family:'Tajawal';font-weight:700;color:#fff;background:var(--ink-2);
+    padding:10px 12px;font-size:12.5px;
+  }
+  thead th:first-child{border-radius:8px 0 0 0;}
+  thead th:last-child{border-radius:0 8px 0 0;}
+  tbody td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink);}
+  tbody tr:nth-child(even){background:var(--paper-2);}
+  tbody tr:hover{background:#F1E9D8;}
+  .mono{font-family:'JetBrains Mono';direction:ltr;display:inline-block;}
+  .pill{
+    display:inline-block;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;
+  }
+  .pill-parent{background:#DCE7DE;color:var(--sage);}
+  .pill-father{background:#DDE6F2;color:#2E5286;}
+  .pill-mother{background:#F3DEE6;color:#8A3A5C;}
+  .pill-sibling{background:#F2E7D0;color:#8A6A1E;}
+  .pill-driver{background:#E4E0EE;color:#5B4A96;}
+  .pill-other{background:#EDEDED;color:#666;}
+  .empty{
+    text-align:center;padding:30px 10px;color:#9AA5A0;font-size:13.5px;
+  }
+  .search-row{margin-bottom:12px;}
+  .search-row input{
+    width:100%;padding:10px 14px;border-radius:9px;border:1.5px solid var(--line);
+    font-family:inherit;font-size:13.5px;outline:none;background:#fff;
+  }
+  .search-row input:focus{border-color:var(--brass);box-shadow:0 0 0 3px rgba(192,143,50,.15);}
+  .cell-copy{display:flex;align-items:center;gap:6px;}
+  .icon-btn{
+    border:none;background:var(--paper-2);color:var(--ink-2);cursor:pointer;
+    width:24px;height:24px;border-radius:6px;font-size:12px;display:inline-flex;
+    align-items:center;justify-content:center;flex-shrink:0;transition:.15s;
+  }
+  .icon-btn:hover{background:var(--brass-2);color:var(--ink);}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn-wa{background:#25D366;color:#fff;}
+  .btn-wa:hover{background:#1EBE57;}
+  .btn-wa[disabled]{background:#C9CFC9;cursor:not-allowed;}
+
+  /* ===== Modal ===== */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(19,43,70,.55);
+    align-items:center;justify-content:center;z-index:50;padding:16px;backdrop-filter:blur(2px);
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--card);border-radius:var(--radius);max-width:520px;width:100%;
+    padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:88vh;overflow-y:auto;
+  }
+  .modal h3{margin:0 0 4px;font-family:'Tajawal';font-weight:800;font-size:17px;}
+  .modal .sub{font-size:12.5px;color:#7A8A82;margin-bottom:18px;}
+  .modal-close{
+    float:left;background:none;border:none;font-size:20px;cursor:pointer;color:#9AA5A0;
+  }
+  .sem-row{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;align-items:end;
+  }
+  .sem-row label{font-size:11.5px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:4px;}
+  .sem-row input{width:100%;padding:8px;border-radius:7px;border:1.5px solid var(--line);font-size:13px;}
+  .sem-name{font-family:'Tajawal';font-weight:700;font-size:13px;color:var(--brass);margin:16px 0 6px;padding-top:12px;border-top:1px dashed var(--line);}
+  .sem-name:first-child{margin-top:0;padding-top:0;border-top:none;}
+  textarea{
+    width:100%;min-height:90px;padding:10px;border-radius:9px;border:1.5px solid var(--line);
+    font-family:inherit;font-size:13.5px;resize:vertical;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:30px;font-size:13.5px;
+    font-family:'Tajawal';font-weight:600;box-shadow:var(--shadow);z-index:100;
+    opacity:0;pointer-events:none;transition:.25s;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,-6px);}
+  footer{text-align:center;font-size:11.5px;color:#9AA5A0;margin-top:22px;padding-bottom:10px;}
+
+  .logo-row{display:flex;align-items:center;gap:14px;}
+  .logo-preview{
+    width:60px;height:60px;border-radius:50%;background:var(--paper-2);
+    display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;flex-shrink:0;
+    border:1.5px dashed var(--line);
+  }
+  .logo-preview img{width:100%;height:100%;object-fit:cover;}
+  .pin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .pin-grid .full{grid-column:1/-1;}
+  .field-sm label{font-size:11.5px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:4px;}
+  .field-sm input{width:100%;padding:8px 10px;border-radius:7px;border:1.5px solid var(--line);font-size:13px;direction:ltr;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- Lock screen -->
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-seal" id="lockSeal">🎓</div>
+    <h2>سجل خروج الطلاب</h2>
+    <p>الرجاء إدخال الرقم السري للدخول</p>
+    <input type="password" id="pinInput" maxlength="6" placeholder="••••••" inputmode="numeric">
+    <div id="pinError"></div>
+    <button class="btn btn-main" style="width:100%;margin-top:12px;justify-content:center;" id="btnUnlock">دخول</button>
+    <div class="lock-hint">أدخل الرقم السري المكوّن من 6 أرقام</div>
+  </div>
+</div>
+
+<!-- ============ شاشة طلب استئذان ولي الأمر (رابط عام منفصل، بدون تسجيل دخول) ============ -->
+<div id="parentRequestScreen" class="hidden" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,#0E3B36,#13524A);">
+  <div class="lock-card" style="max-width:440px;width:100%;text-align:right;">
+    <div class="lock-seal" id="parentSeal" style="margin:0 auto 10px;">🎓</div>
+    <h2 id="parentSchoolName" style="text-align:center;">طلب استئذان خروج طالب</h2>
+    <p style="text-align:center;">عبّئي البيانات أدناه، وسيصل طلبك فورًا لإدارة المدرسة</p>
+
+    <div class="field" style="margin-bottom:12px;">
+      <label>الفصل الدراسي</label>
+      <select id="reqClass"></select>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>اسم الطالب / الطالبة</label>
+      <input type="text" id="reqStudent" placeholder="اكتب الاسم الكامل">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>سبب الاستئذان</label>
+      <select id="reqReason">
+        <option value="ظرف عائلي">ظرف عائلي</option>
+        <option value="موعد طبي">موعد طبي</option>
+        <option value="حالة مرضية">حالة مرضية طارئة</option>
+        <option value="أخرى">أخرى (تحديد)</option>
+      </select>
+    </div>
+    <div class="field" id="reqReasonOtherWrap" style="display:none;margin-bottom:12px;">
+      <label>تحديد السبب</label>
+      <input type="text" id="reqReasonOther" placeholder="اكتب السبب">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>اسم الشخص الذي سيأتي لأخذ الطالب</label>
+      <input type="text" id="reqCompanion" placeholder="اسم المرافق">
+    </div>
+    <div class="field" style="margin-bottom:6px;">
+      <label>جوالك (اختياري، لتواصل الإدارة معك عند الحاجة)</label>
+      <input type="tel" id="reqPhone" placeholder="05xxxxxxxx" dir="ltr">
+    </div>
+    <div id="reqError" style="min-height:18px;font-size:12.5px;color:#B9432E;margin:6px 0;"></div>
+    <button class="btn btn-main" style="width:100%;margin-top:8px;justify-content:center;" id="btnSendRequest">📨 إرسال الطلب للإدارة</button>
+    <div id="reqSentMsg" class="hidden" style="text-align:center;margin-top:14px;padding:14px;background:#EAF4F1;border-radius:10px;color:#0E3B36;font-weight:700;font-size:13.5px;">
+      ✅ تم إرسال طلبك بنجاح، بانتظار موافقة الإدارة.
+      <div style="font-weight:400;font-size:12px;margin-top:6px;color:#3C5853;">يمكنك إغلاق هذه الصفحة الآن، أو إرسال طلب آخر لطالب ثانٍ.</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap hidden" id="mainApp">
+
+  <header>
+    <div class="brand">
+      <div class="seal" id="headerSeal">🎓</div>
+      <div>
+        <h1>سجل خروج الطلاب</h1>
+        <p>لوحة متابعة المشرف/المعلم لحركة الخروج اليومية</p>
+      </div>
+    </div>
+    <div class="clockbox">
+      <div class="time" id="liveTime">--:--:--</div>
+      <div class="date" id="liveDate">—</div>
+      <span class="sem" id="liveSem">جاري تحديد الفصل...</span>
+      <div id="cloudStatus" style="text-align:center;font-size:10.5px;color:#C7D2DE;margin-top:4px;"></div>
+    </div>
+    <div class="headerBtns">
+      <button class="gear" id="btnRequests" title="طلبات أولياء الأمور" style="position:relative;">
+        🔔
+        <span id="reqBadge" class="hidden" style="position:absolute;top:-4px;left:-4px;background:#B9432E;color:#fff;font-size:10px;font-weight:800;border-radius:999px;min-width:17px;height:17px;display:flex;align-items:center;justify-content:center;padding:0 3px;">0</span>
+      </button>
+      <button class="gear" id="btnLock" title="قفل">🔒</button>
+      <button class="gear" id="btnSettings" title="الإعدادات">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Entry ticket -->
+  <div class="ticket">
+    <div class="stub"><span>تسجيل خروج</span></div>
+    <div class="ticket-body">
+      <h2>بيانات خروج الطالب</h2>
+      <div class="grid">
+        <div class="field">
+          <label>الصف</label>
+          <select id="inClass"></select>
+        </div>
+        <div class="field">
+          <label>اسم الطالب / الطالبة</label>
+          <input type="text" id="inStudent" placeholder="اكتب الاسم الكامل" list="studentNamesList" autocomplete="off">
+          <datalist id="studentNamesList"></datalist>
+        </div>
+        <div class="field">
+          <label>اسم المرافق</label>
+          <input type="text" id="inCompanion" placeholder="اسم الشخص الذي خرج مع الطالب">
+        </div>
+        <div class="field">
+          <label>جوال ولي الأمر (لإرسال رسالة واتساب)</label>
+          <input type="tel" id="inPhone" placeholder="05xxxxxxxx" dir="ltr">
+        </div>
+        <div class="field">
+          <label>صلة المرافق بالطالب</label>
+          <select id="inRelation">
+            <option value="ولي الأمر">ولي الأمر</option>
+            <option value="الأب">الأب</option>
+            <option value="الأم">الأم</option>
+            <option value="أخ/أخت">أخ / أخت</option>
+            <option value="سائق">سائق</option>
+            <option value="أخرى">أخرى (تحديد)</option>
+          </select>
+        </div>
+        <div class="field full" id="otherRelWrap" style="display:none;">
+          <label>تحديد الصلة</label>
+          <input type="text" id="inRelationOther" placeholder="اكتب صلة المرافق">
+        </div>
+      </div>
+      <div class="submit-row">
+        <button class="btn btn-main" id="btnSave">✅ تسجيل الخروج الآن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Records table -->
+  <div class="panel">
+    <div class="panel-head">
+      <h3>📋 سجلات الخروج <span class="badge-count" id="countBadge">0</span></h3>
+      <div class="actions">
+        <button class="btn btn-ghost btn-small" id="btnToggleAll">عرض كل السجلات</button>
+        <button class="btn btn-ghost btn-small" id="btnExportView">⬇️ تصدير Word (المعروض)</button>
+      </div>
+    </div>
+    <div class="search-row" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="text" id="searchStudent" style="flex:1;min-width:180px;" placeholder="🔍 البحث عن طالب بعينه بالاسم...">
+      <select id="filterClass" style="min-width:140px;"><option value="">كل الفصول</option></select>
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="recTable">
+        <thead>
+          <tr>
+            <th>التاريخ</th><th>الوقت</th><th>الفصل الدراسي</th><th>الصف</th>
+            <th>اسم الطالب</th><th>المرافق</th><th>الصلة</th><th>جوال ولي الأمر</th><th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="recBody"></tbody>
+      </table>
+      <div class="empty" id="emptyState" style="display:none;">لا توجد سجلات بعد</div>
+    </div>
+  </div>
+
+  <footer>يتم حفظ السجلات تلقائيًا على هذا الجهاز داخل هذا المتصفح</footer>
+</div>
+
+<!-- Parent requests modal -->
+<div class="overlay" id="requestsOverlay">
+  <div class="modal">
+    <button class="modal-close" id="requestsModalClose">✕</button>
+    <h3>🔔 طلبات أولياء الأمور</h3>
+    <div class="sub">طلبات استئذان واردة مباشرة من أولياء الأمور، بانتظار مراجعتك</div>
+    <div id="requestsList"></div>
+    <div class="empty" id="requestsEmpty" style="display:none;">لا توجد طلبات معلّقة حاليًا</div>
+    <div class="sub" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);">
+      رابط الطلب لمشاركته مع أولياء الأمور (واتساب، إلخ):
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input type="text" id="parentLinkBox" readonly style="flex:1;direction:ltr;text-align:left;font-size:12px;padding:8px;border-radius:8px;border:1.5px solid var(--line);">
+        <button class="btn btn-ghost btn-small" id="btnCopyParentLink">نسخ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <h3>⚙️ الإعدادات</h3>
+    <div class="sub">تخصيص شعار المدرسة، الرقم السري، الفصول والصفوف الدراسية</div>
+
+    <div class="sem-name" style="margin-top:0;padding-top:0;border-top:none;">🏷️ اسم المدرسة وعنوان اللوحة</div>
+    <div class="field-sm" style="margin-bottom:8px;">
+      <label>اسم المدرسة</label>
+      <input type="text" id="schoolNameInput" style="direction:rtl;text-align:right;" placeholder="مثال: مدارس باب المعرفة">
+    </div>
+    <div class="field-sm" style="margin-bottom:8px;">
+      <label>عنوان اللوحة</label>
+      <input type="text" id="dashboardTitleInput" style="direction:rtl;text-align:right;" placeholder="مثال: سجل خروج الطلاب">
+    </div>
+
+    <div class="sem-name">🏫 شعار المدرسة</div>
+    <div class="logo-row">
+      <div class="logo-preview" id="logoPreview">🎓</div>
+      <div style="flex:1;">
+        <input type="file" id="logoFile" accept="image/*">
+        <div style="margin-top:6px;">
+          <button class="btn btn-ghost btn-small" id="btnRemoveLogo">إزالة الشعار</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sem-name">🔐 الرقم السري</div>
+    <div class="pin-grid">
+      <div class="field-sm"><label>الرقم الحالي</label><input type="password" id="pinCurrent" maxlength="6"></div>
+      <div class="field-sm"><label>الرقم الجديد</label><input type="password" id="pinNew" maxlength="6"></div>
+      <div class="field-sm full"><label>تأكيد الرقم الجديد</label><input type="password" id="pinConfirm" maxlength="6"></div>
+    </div>
+    <div id="pinSettingsMsg" style="font-size:12px;color:var(--red);margin-top:6px;min-height:14px;"></div>
+
+    <div class="sem-name">📖 إعداد الفصول الدراسية</div>
+    <div id="semSettingsWrap"></div>
+
+    <div class="sem-name">📋 قائمة الصفوف</div>
+    <label style="font-size:11.5px;color:#7A8A82;">صف واحد في كل سطر</label>
+    <textarea id="classesText"></textarea>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnCancelSettings">إلغاء</button>
+      <button class="btn btn-main" id="btnSaveSettings">حفظ الإعدادات</button>
+    </div>
+  </div>
+</div>
+
+<!-- WhatsApp message picker -->
+<div class="overlay" id="waOverlay">
+  <div class="modal" style="max-width:400px;">
+    <button class="modal-close" id="waModalClose">✕</button>
+    <h3>💬 اختر نص الرسالة</h3>
+    <div class="sub">سيتم فتح واتساب برسالة جاهزة لولي الأمر</div>
+    <div id="waOptions" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WA_TEMPLATES = [
+  {
+    id: 'default',
+    label: 'رسالة عادية (تبليغ فقط)',
+    build: r => `عزيزي ولي أمر الطالب/ـة ${r.student} (${r.class})،\nنفيدكم بأنه تم تسجيل خروج الطالب/ـة من المدرسة بتاريخ ${r.date} الساعة ${r.time} برفقة: ${r.companion} (${r.relation}).\nشكرًا لتعاونكم.`
+  },
+  {
+    id: 'academic',
+    label: 'تنبيه: التأثير على المستوى الدراسي',
+    build: r => `عزيزي ولي أمر الطالب/ـة ${r.student} (${r.class})،\nنفيدكم بخروج ابنكم/ابنتكم من المدرسة قبل نهاية الدوام بتاريخ ${r.date} الساعة ${r.time}.\nنلفت انتباهكم إلى أن تكرار الخروج المبكر قد يؤثر سلبًا على المستوى الدراسي للطالب/ـة.\nشكرًا لتعاونكم.`
+  },
+  {
+    id: 'necessity',
+    label: 'تنبيه: عدم الاستئذان إلا للضرورة',
+    build: r => `عزيزي ولي أمر الطالب/ـة ${r.student} (${r.class})،\nتم تسجيل خروج الطالب/ـة بتاريخ ${r.date} الساعة ${r.time}.\nنأمل التكرم بعدم طلب استئذان الطالب/ـة إلا للضرورة القصوى، حفاظًا على انتظامه الدراسي.\nشكرًا لتفهمكم وتعاونكم.`
+  },
+  {
+    id: 'discipline',
+    label: 'تنبيه: التأثير على الانضباط والتعليم',
+    build: r => `عزيزي ولي أمر الطالب/ـة ${r.student} (${r.class})،\nنفيدكم بخروج الطالب/ـة قبل نهاية الدوام بتاريخ ${r.date} الساعة ${r.time}.\nنود التنبيه إلى أن كثرة الاستئذان تؤثر على مستوى انضباط الطالب/ـة وتحصيله التعليمي.\nنرجو مراعاة ذلك مستقبلًا. شكرًا لتعاونكم.`
+  }
+];
+const STORAGE_PREFIX = 'exitlog_';
+const DEFAULT_SETTINGS = {
+  logo: null,
+  schoolName: "مدارس باب المعرفة",
+  dashboardTitle: "سجل خروج الطلاب",
+  classes: ["الأول أ","الأول ب","الثاني أ","الثاني ب","الثالث أ","الثالث ب"],
+  semesters: [
+    {name:"الفصل الدراسي الأول",  start:"2025-08-24", end:"2026-01-15"},
+    {name:"الفصل الدراسي الثاني", start:"2026-01-16", end:"2026-06-25"}
+  ]
+};
+
+let settings = structuredClone(DEFAULT_SETTINGS);
+let records = [];
+let showAll = false;
+let storageOK = true;
+
+const $ = id => document.getElementById(id);
+
+/* ===== Local persistence (works when the file is opened directly in a browser) ===== */
+function lsGet(key, fallback){
+  try{
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch(e){ storageOK = false; return fallback; }
+}
+function lsSet(key, value){
+  try{
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+    return true;
+  }catch(e){ storageOK = false; return false; }
+}
+
+/* ===== Branding (school name + dashboard title) ===== */
+function applyBranding(){
+  const name = settings.schoolName || DEFAULT_SETTINGS.schoolName;
+  const title = settings.dashboardTitle || DEFAULT_SETTINGS.dashboardTitle;
+  document.title = title;
+  const lockH2 = document.querySelector('#lockScreen h2');
+  if(lockH2) lockH2.textContent = title;
+  const headerH1 = document.querySelector('header .brand h1');
+  if(headerH1) headerH1.textContent = title;
+  const headerP = document.querySelector('header .brand p');
+  if(headerP) headerP.textContent = name + ' — لوحة متابعة المشرف/المعلم لحركة الخروج اليومية';
+}
+
+function loadData(){
+  const savedSettings = lsGet('settings', null);
+  if(savedSettings) settings = Object.assign(structuredClone(DEFAULT_SETTINGS), savedSettings);
+
+  // لا نحفظ سجلات الاستئذان (بما فيها أرقام أولياء الأمور) في localStorage.
+  // السجلات الحساسة تأتي فقط من Firestore بعد المصادقة.
+  records = [];
+
+  populateClassSelect();
+  refreshClassFilterOptions();
+  applyLogo();
+  applyBranding();
+  renderTable();
+  if(!storageOK){
+    showToast('⚠️ تعذر الوصول لتخزين المتصفح — قد لا يتم حفظ الإعدادات');
+  }
+}
+function persistSettings(){
+  const ok = lsSet('settings', settings);
+  if(!ok) showToast('⚠️ تعذر حفظ الإعدادات في هذا المتصفح');
+  if(window.__fsSaveSettings) window.__fsSaveSettings(settings);
+  return ok;
+}
+window.__onRemoteSettings = function(remoteSettings){
+  if(remoteSettings){
+    settings = Object.assign(structuredClone(DEFAULT_SETTINGS), remoteSettings);
+    // الإعدادات ليست بيانات طلاب/أولياء أمور، ويمكن الاحتفاظ بها محليًا.
+    lsSet('settings', settings);
+    populateClassSelect();
+  refreshClassFilterOptions();
+    applyLogo();
+    applyBranding();
+    tickClock();
+  }
+};
+window.__onRemoteRecords = function(remoteRecords){
+  if(Array.isArray(remoteRecords)){
+    // لا نحفظ السجلات الحساسة محليًا؛ تبقى في الذاكرة فقط أثناء الجلسة.
+    records = remoteRecords;
+    renderTable();
+  }
+};
+
+function todayISO(){
+  const d = new Date();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function detectSemester(dateStr){
+  const found = settings.semesters.find(s => dateStr >= s.start && dateStr <= s.end);
+  return found ? found.name : "خارج نطاق الفصول الدراسية";
+}
+
+function relationPillClass(rel){
+  if(rel.includes('ولي')) return 'pill-parent';
+  if(rel === 'الأب') return 'pill-father';
+  if(rel.includes('الأم')) return 'pill-mother';
+  if(rel.includes('أخ')) return 'pill-sibling';
+  if(rel.includes('سائق')) return 'pill-driver';
+  return 'pill-other';
+}
+
+function showToast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+/* ===== Logo ===== */
+function applyLogo(){
+  const seals = [$('headerSeal'), $('lockSeal'), $('logoPreview')];
+  seals.forEach(el=>{
+    if(!el) return;
+    el.innerHTML = settings.logo ? `<img src="${settings.logo}" alt="شعار المدرسة">` : '🎓';
+  });
+}
+$('logoFile') && $('logoFile').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    settings.logo = reader.result;
+    applyLogo();
+  };
+  reader.readAsDataURL(file);
+});
+$('btnRemoveLogo') && $('btnRemoveLogo').addEventListener('click', ()=>{
+  settings.logo = null;
+  applyLogo();
+  $('logoFile').value = '';
+});
+
+/* ===== Lock screen =====
+   ملاحظة: الدخول الفعلي يتم التحقق منه عبر Firebase Authentication
+   (انظر وحدة السكربت الخاصة بـ Firebase في نهاية الملف) وليس محليًا،
+   لضمان عدم إمكانية تجاوزه من أدوات المطور في المتصفح. */
+
+/* ===== Clock / semester ===== */
+function tickClock(){
+  const now = new Date();
+  $('liveTime').textContent = now.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  $('liveDate').textContent = now.toLocaleDateString('ar-SA-u-ca-gregory', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  $('liveSem').textContent = detectSemester(todayISO());
+}
+setInterval(tickClock, 1000);
+
+/* ===== Class select ===== */
+function populateClassSelect(){
+  const sel = $('inClass');
+  sel.innerHTML = settings.classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ===== Relation "other" toggle ===== */
+$('inRelation').addEventListener('change', e=>{
+  $('otherRelWrap').style.display = e.target.value === 'أخرى' ? 'block' : 'none';
+});
+
+/* ===== Save record ===== */
+$('btnSave').addEventListener('click', ()=>{
+  const student = $('inStudent').value.trim();
+  const companion = $('inCompanion').value.trim();
+  const phone = $('inPhone').value.trim();
+  const cls = $('inClass').value;
+  let relation = $('inRelation').value;
+  if(relation === 'أخرى'){
+    const other = $('inRelationOther').value.trim();
+    if(!other){ showToast('يرجى تحديد صلة المرافق'); return; }
+    relation = other;
+  }
+  if(!student){ showToast('يرجى إدخال اسم الطالب'); return; }
+  if(!companion){ showToast('يرجى إدخال اسم المرافق'); return; }
+
+  const now = new Date();
+  const rec = {
+    id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    createdAt: now.getTime(),
+    date: todayISO(),
+    time: now.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit',hour12:true}),
+    semester: detectSemester(todayISO()),
+    class: cls,
+    student, companion, phone, relation
+  };
+  records.unshift(rec);
+  renderTable();
+  $('inStudent').value=''; $('inCompanion').value=''; $('inPhone').value=''; $('inRelationOther').value='';
+  $('inRelation').value='ولي الأمر'; $('otherRelWrap').style.display='none';
+  if(window.__fsAddRecord){
+    window.__fsAddRecord(rec).then(()=>{
+      showToast('✅ تم تسجيل الخروج وحفظه بنجاح');
+    }).catch(err=>{
+      console.error(err);
+      records = records.filter(r=>r.id !== rec.id);
+      renderTable();
+      showToast('⚠️ تعذر حفظ السجل سحابيًا — لم يُحفظ');
+    });
+  }else{
+    records = records.filter(r=>r.id !== rec.id);
+    renderTable();
+    showToast('⚠️ لم يتم الاتصال بالسحابة بعد');
+  }
+});
+
+/* ===== Copy helpers ===== */
+function copyText(text, label){
+  if(!text){ showToast('لا توجد بيانات لنسخها'); return; }
+  const done = ()=> showToast('📋 تم نسخ ' + (label || 'البيانات'));
+  const fail = ()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }
+    catch(e){ showToast('تعذر النسخ، يرجى النسخ يدويًا'); }
+    document.body.removeChild(ta);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  }else{ fail(); }
+}
+
+function normalizePhone(phone){
+  let p = (phone||'').replace(/[^0-9]/g, '');
+  if(!p) return '';
+  if(p.startsWith('0')) p = '966' + p.slice(1);
+  else if(!p.startsWith('966') && p.length <= 10) p = '966' + p;
+  return p;
+}
+
+let waCurrentRecord = null;
+
+function sendWhatsApp(r){
+  const p = normalizePhone(r.phone);
+  if(!p){ showToast('لا يوجد رقم جوال مسجل لهذا السجل'); return; }
+  waCurrentRecord = r;
+  const wrap = $('waOptions');
+  wrap.innerHTML = WA_TEMPLATES.map(t=>`<button class="btn btn-ghost" style="justify-content:flex-start;text-align:right;" data-wa-tpl="${t.id}">${t.label}</button>`).join('');
+  $('waOverlay').classList.add('show');
+}
+
+$('waOptions').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-wa-tpl]');
+  if(!btn || !waCurrentRecord) return;
+  const tpl = WA_TEMPLATES.find(t=>t.id === btn.dataset.waTpl);
+  if(!tpl) return;
+  const p = normalizePhone(waCurrentRecord.phone);
+  const msg = tpl.build(waCurrentRecord);
+  window.open(`https://wa.me/${p}?text=${encodeURIComponent(msg)}`, '_blank');
+  $('waOverlay').classList.remove('show');
+  waCurrentRecord = null;
+});
+$('waModalClose').addEventListener('click', ()=>{
+  $('waOverlay').classList.remove('show');
+  waCurrentRecord = null;
+});
+
+/* ===== Table render ===== */
+function renderTable(){
+  let list = showAll ? records.slice() : records.filter(r=>r.date===todayISO());
+  const q = ($('searchStudent').value || '').trim();
+  if(q) list = list.filter(r => r.student.includes(q));
+  const cls = $('filterClass').value;
+  if(cls) list = list.filter(r => r.class === cls);
+  const body = $('recBody');
+  $('countBadge').textContent = list.length;
+  $('emptyState').style.display = list.length ? 'none' : 'block';
+  body.innerHTML = list.map(r=>`
+    <tr>
+      <td class="mono">${r.date}</td>
+      <td class="mono">${r.time}</td>
+      <td>${r.semester}</td>
+      <td>${r.class}</td>
+      <td><div class="cell-copy"><span>${r.student}</span><button class="icon-btn" data-copy="student" data-id="${r.id}" title="نسخ الاسم">📋</button></div></td>
+      <td>${r.companion}</td>
+      <td><span class="pill ${relationPillClass(r.relation)}">${r.relation}</span></td>
+      <td><div class="cell-copy"><span class="mono">${r.phone || '—'}</span>${r.phone ? `<button class="icon-btn" data-copy="phone" data-id="${r.id}" title="نسخ الجوال">📋</button>` : ''}</div></td>
+      <td>
+        <div class="row-actions">
+          <button class="btn btn-small btn-wa" data-wa="${r.id}" ${r.phone ? '' : 'disabled'} title="إرسال رسالة واتساب لولي الأمر">💬 رسالة</button>
+          <button class="btn btn-danger btn-small" data-del="${r.id}">🗑 حذف</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  body.querySelectorAll('button[data-copy]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const rec = records.find(r=>r.id === btn.dataset.id);
+      if(!rec) return;
+      const field = btn.dataset.copy;
+      copyText(field === 'student' ? rec.student : rec.phone, field === 'student' ? 'الاسم' : 'رقم الجوال');
+    });
+  });
+  body.querySelectorAll('button[data-wa]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const rec = records.find(r=>r.id === btn.dataset.wa);
+      if(rec) sendWhatsApp(rec);
+    });
+  });
+  body.querySelectorAll('button[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(!confirm('هل تريد حذف هذا السجل؟')) return;
+      const idToDelete = btn.dataset.del;
+      const backup = records.find(r=>r.id === idToDelete);
+      records = records.filter(r=>r.id !== idToDelete);
+      renderTable();
+      if(window.__fsDeleteRecord){
+        window.__fsDeleteRecord(idToDelete).then(()=>{
+          showToast('تم حذف السجل');
+        }).catch(err=>{
+          console.error(err);
+          if(backup){ records.unshift(backup); renderTable(); }
+          showToast('⚠️ تعذر حذف السجل سحابيًا');
+        });
+      }else{
+        showToast('⚠️ لم يتم الاتصال بالسحابة بعد');
+      }
+    });
+  });
+  updateStudentDirectory();
+}
+
+// دليل الطلاب: يُبنى تلقائيًا من السجلات السابقة (اسم الطالب → آخر جوال/مرافق مسجّل له)
+let studentDirectory = {};
+function updateStudentDirectory(){
+  studentDirectory = {};
+  // records مرتبة من الأحدث للأقدم، فأول ظهور لكل اسم هو الأحدث
+  records.forEach(r=>{
+    const key = (r.student || '').trim();
+    if(key && !studentDirectory[key]){
+      studentDirectory[key] = { phone: r.phone, companion: r.companion, relation: r.relation };
+    }
+  });
+  $('studentNamesList').innerHTML = Object.keys(studentDirectory).map(n=>`<option value="${n}"></option>`).join('');
+}
+
+function refreshClassFilterOptions(){
+  const cur = $('filterClass').value;
+  $('filterClass').innerHTML = '<option value="">كل الفصول</option>' +
+    settings.classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(settings.classes.includes(cur)) $('filterClass').value = cur;
+}
+$('filterClass').addEventListener('change', renderTable);
+
+$('inStudent').addEventListener('input', ()=>{
+  const name = $('inStudent').value.trim();
+  const match = studentDirectory[name];
+  if(match){
+    if(!$('inPhone').value.trim() && match.phone) $('inPhone').value = match.phone;
+    if(!$('inCompanion').value.trim() && match.companion) $('inCompanion').value = match.companion;
+  }
+});
+
+$('searchStudent').addEventListener('input', renderTable);
+
+$('btnToggleAll').addEventListener('click', ()=>{
+  showAll = !showAll;
+  $('btnToggleAll').textContent = showAll ? 'عرض سجلات اليوم فقط' : 'عرض كل السجلات';
+  renderTable();
+});
+
+/* ===== Export to Word (ملف .docx حقيقي عبر JSZip، يعمل على كل الأجهزة بما فيها الآيفون) ===== */
+function xmlEscape(s){
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+function docxCell(text, header){
+  const shd = header ? '<w:shd w:val="clear" w:color="auto" w:fill="132B46"/>' : '';
+  const rPr = header ? '<w:rtl/><w:b/><w:color w:val="FFFFFF"/><w:sz w:val="20"/>' : '<w:rtl/><w:sz w:val="20"/>';
+  return `<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/>${shd}<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:bidi/><w:jc w:val="center"/></w:pPr><w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p></w:tc>`;
+}
+function docxRow(cells, header){
+  return `<w:tr>${cells.map(c=>docxCell(c, header)).join('')}</w:tr>`;
+}
+async function exportToDocx(list, title, filename){
+  if(!window.JSZip){ showToast('⚠️ تعذر تحميل مكوّن تصدير Word، تحقق من الاتصال بالإنترنت'); return; }
+  const headers = ['التاريخ','الوقت','الفصل الدراسي','الصف','اسم الطالب','المرافق','الصلة','جوال ولي الأمر'];
+  const bordersXml = `<w:tblBorders>
+    <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+    <w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+  </w:tblBorders>`;
+  const gridXml = headers.map(()=>'<w:gridCol w:w="2000"/>').join('');
+  const rowsXml = docxRow(headers, true) + list.map(r => docxRow([r.date, r.time, r.semester, r.class, r.student, r.companion, r.relation, r.phone || '—'], false)).join('');
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:body>
+<w:p><w:pPr><w:bidi/><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:rtl/><w:b/><w:sz w:val="32"/></w:rPr><w:t xml:space="preserve">${xmlEscape(title)}</w:t></w:r></w:p>
+<w:p><w:pPr><w:bidi/></w:pPr></w:p>
+<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordersXml}</w:tblPr><w:tblGrid>${gridXml}</w:tblGrid>${rowsXml}</w:tbl>
+<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/></w:sectPr>
+</w:body>
+</w:document>`;
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', contentTypesXml);
+  zip.folder('_rels').file('.rels', relsXml);
+  zip.folder('word').file('document.xml', documentXml);
+  const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename + '.docx';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+$('btnExportView').addEventListener('click', async ()=>{
+  const list = showAll ? records.slice() : records.filter(r=>r.date===todayISO());
+  const title = showAll ? 'سجل خروج الطلاب - كل السجلات' : `سجل خروج الطلاب - ${todayISO()}`;
+  if(!list.length){ showToast('لا توجد سجلات لتصديرها'); return; }
+  showToast('⏳ جاري تجهيز ملف Word...');
+  try{
+    await exportToDocx(list, title, showAll ? 'سجل_خروج_كل_السجلات' : 'سجل_خروج_'+todayISO());
+    showToast('📄 تم تجهيز ملف Word للتنزيل');
+  }catch(err){
+    console.error(err);
+    showToast('⚠️ تعذر إنشاء ملف Word، حاول مرة أخرى');
+  }
+});
+
+/* ===== Settings modal ===== */
+function buildSemesterInputs(){
+  $('semSettingsWrap').innerHTML = settings.semesters.map((s,i)=>`
+    <div style="margin-bottom:8px;border:1px solid #eee;border-radius:8px;padding:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:12.5px;font-weight:700;color:var(--ink-2);">${s.name}</div>
+        <button type="button" class="btn btn-danger btn-small" data-del-sem="${i}" style="padding:2px 8px;font-size:11px;">🗑 حذف</button>
+      </div>
+      <div class="sem-row">
+        <div><label>من</label><input type="date" data-i="${i}" data-k="start" value="${s.start}"></div>
+        <div><label>إلى</label><input type="date" data-i="${i}" data-k="end" value="${s.end}"></div>
+        <div><label>اسم الفصل</label><input type="text" data-i="${i}" data-k="name" value="${s.name}"></div>
+      </div>
+    </div>
+  `).join('') + `<button type="button" class="btn btn-ghost btn-small" id="btnAddSemester" style="margin-top:2px;">+ إضافة فصل دراسي</button>`;
+
+  $('semSettingsWrap').querySelectorAll('button[data-del-sem]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(settings.semesters.length <= 1){ showToast('لازم يبقى فصل دراسي واحد على الأقل'); return; }
+      settings.semesters.splice(Number(btn.dataset.delSem), 1);
+      buildSemesterInputs();
+    });
+  });
+  const addSemBtn = document.getElementById('btnAddSemester');
+  if(addSemBtn) addSemBtn.addEventListener('click', ()=>{
+    settings.semesters.push({name:'فصل جديد', start:todayISO(), end:todayISO()});
+    buildSemesterInputs();
+  });
+}
+
+$('btnSettings').addEventListener('click', ()=>{
+  buildSemesterInputs();
+  $('classesText').value = settings.classes.join('\n');
+  $('schoolNameInput').value = settings.schoolName || DEFAULT_SETTINGS.schoolName;
+  $('dashboardTitleInput').value = settings.dashboardTitle || DEFAULT_SETTINGS.dashboardTitle;
+  $('pinCurrent').value=''; $('pinNew').value=''; $('pinConfirm').value='';
+  $('pinSettingsMsg').textContent='';
+  $('logoFile').value = '';
+  $('overlay').classList.add('show');
+});
+$('modalClose').addEventListener('click', ()=> $('overlay').classList.remove('show'));
+$('btnCancelSettings').addEventListener('click', ()=> {
+  applyLogo(); // revert any un-saved logo preview change
+  $('overlay').classList.remove('show');
+});
+
+$('btnSaveSettings').addEventListener('click', async ()=>{
+  // Handle PIN change (optional) — يتم تغييره فعليًا في Firebase Authentication
+  const cur = $('pinCurrent').value.trim();
+  const nw = $('pinNew').value.trim();
+  const cf = $('pinConfirm').value.trim();
+  if(cur || nw || cf){
+    if(!/^\d{6,}$/.test(nw)){
+      $('pinSettingsMsg').textContent = 'الرقم الجديد يجب أن يكون 6 أرقام على الأقل (أرقام فقط)';
+      return;
+    }
+    if(nw !== cf){
+      $('pinSettingsMsg').textContent = 'تأكيد الرقم الجديد غير مطابق';
+      return;
+    }
+    if(!window.__fsChangePin){
+      $('pinSettingsMsg').textContent = 'تعذر الاتصال بالسحابة، حاول لاحقًا';
+      return;
+    }
+    $('btnSaveSettings').disabled = true;
+    try{
+      await window.__fsChangePin(cur, nw);
+    }catch(err){
+      console.error(err);
+      $('pinSettingsMsg').textContent = 'الرقم السري الحالي غير صحيح';
+      $('btnSaveSettings').disabled = false;
+      return;
+    }
+    $('btnSaveSettings').disabled = false;
+  }
+
+  document.querySelectorAll('#semSettingsWrap input').forEach(inp=>{
+    const i = inp.dataset.i, k = inp.dataset.k;
+    settings.semesters[i][k] = inp.value;
+  });
+  const classes = $('classesText').value.split('\n').map(c=>c.trim()).filter(Boolean);
+  if(classes.length) settings.classes = classes;
+
+  const schoolNameVal = $('schoolNameInput').value.trim();
+  const dashboardTitleVal = $('dashboardTitleInput').value.trim();
+  if(schoolNameVal) settings.schoolName = schoolNameVal;
+  if(dashboardTitleVal) settings.dashboardTitle = dashboardTitleVal;
+
+  persistSettings();
+  populateClassSelect();
+  refreshClassFilterOptions();
+  applyLogo();
+  applyBranding();
+  tickClock();
+  $('overlay').classList.remove('show');
+  showToast('✅ تم حفظ الإعدادات');
+});
+
+/* ===== 🔔 طلبات أولياء الأمور (إدارة) ===== */
+let pendingRequests = [];
+let isFirstRequestsSnapshot = true;
+
+function playRequestAlertSound(){
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return;
+    const ctx = new Ctx();
+    [0, 260, 520].forEach(delay=>{
+      setTimeout(()=>{
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime+0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.28);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime+0.3);
+      }, delay);
+    });
+  }catch(e){ console.error('تعذر تشغيل صوت التنبيه', e); }
+}
+
+function renderRequestsBadge(){
+  const badge = $('reqBadge');
+  if(pendingRequests.length){
+    badge.textContent = pendingRequests.length;
+    badge.classList.remove('hidden');
+  }else{
+    badge.classList.add('hidden');
+  }
+}
+
+function renderRequestsList(){
+  const box = $('requestsList');
+  const empty = $('requestsEmpty');
+  if(!pendingRequests.length){
+    box.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  box.innerHTML = pendingRequests.map(r=>`
+    <div style="border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <strong style="font-size:14px;">${escapeHtmlReq(r.studentName||'')}</strong>
+        <span style="font-size:11px;color:#7A8A82;">${escapeHtmlReq(r.time||'')}</span>
+      </div>
+      <div style="font-size:12.5px;color:#4a5a54;line-height:1.7;">
+        الفصل: ${escapeHtmlReq(r.klass||'—')}<br>
+        السبب: ${escapeHtmlReq(r.reason||'—')}<br>
+        سيأتي لأخذه: ${escapeHtmlReq(r.companionName||'—')}${r.companionPhone ? ' — '+escapeHtmlReq(r.companionPhone) : ''}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-main btn-small" style="flex:1;justify-content:center;" data-accept-req="${r.id}">✅ تعبئة نموذج الخروج</button>
+        <button class="btn btn-ghost btn-small" data-dismiss-req="${r.id}">❌ تجاهل</button>
+      </div>
+    </div>`).join('');
+  box.querySelectorAll('[data-accept-req]').forEach(btn=>{
+    btn.addEventListener('click', ()=> acceptRequest(btn.dataset.acceptReq));
+  });
+  box.querySelectorAll('[data-dismiss-req]').forEach(btn=>{
+    btn.addEventListener('click', ()=> dismissRequest(btn.dataset.dismissReq));
+  });
+}
+function escapeHtmlReq(str){
+  return String(str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function acceptRequest(id){
+  const r = pendingRequests.find(x=>x.id===id);
+  if(!r) return;
+  $('inClass').value = r.klass || '';
+  $('inStudent').value = r.studentName || '';
+  $('inCompanion').value = r.companionName || '';
+  if(r.companionPhone) $('inPhone').value = r.companionPhone;
+  $('requestsOverlay').classList.remove('show');
+  showToast('✅ تمت تعبئة بيانات الطالب — راجعيها واضغطي "تسجيل الخروج الآن"');
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(window.__fsDeleteRequest) window.__fsDeleteRequest(id).catch(err=>console.error(err));
+}
+function dismissRequest(id){
+  if(window.__fsDeleteRequest) window.__fsDeleteRequest(id).catch(err=>console.error(err));
+}
+
+window.__onRemoteRequests = function(list){
+  const previousIds = new Set(pendingRequests.map(r=>r.id));
+  const newOnes = list.filter(r => !previousIds.has(r.id));
+  pendingRequests = list;
+  renderRequestsBadge();
+  renderRequestsList();
+  if(!isFirstRequestsSnapshot && newOnes.length){
+    playRequestAlertSound();
+    showToast(`🔔 طلب استئذان جديد من ولي أمر: ${newOnes[0].studentName || ''}`);
+  }
+  isFirstRequestsSnapshot = false;
+};
+
+$('btnRequests').addEventListener('click', ()=>{
+  renderRequestsList();
+  $('parentLinkBox').value = location.origin + location.pathname + '#request';
+  $('requestsOverlay').classList.add('show');
+});
+$('requestsModalClose').addEventListener('click', ()=> $('requestsOverlay').classList.remove('show'));
+$('requestsOverlay').addEventListener('click', e=>{ if(e.target.id==='requestsOverlay') $('requestsOverlay').classList.remove('show'); });
+$('btnCopyParentLink').addEventListener('click', ()=>{
+  $('parentLinkBox').select();
+  try{
+    navigator.clipboard.writeText($('parentLinkBox').value);
+    showToast('✅ تم نسخ الرابط');
+  }catch(e){
+    document.execCommand('copy');
+    showToast('✅ تم نسخ الرابط');
+  }
+});
+
+/* ===== 📨 شاشة طلب ولي الأمر (عامة، بدون تسجيل دخول) ===== */
+function initParentRequestMode(){
+  document.title = 'طلب استئذان خروج طالب';
+  $('reqReason').addEventListener('change', e=>{
+    $('reqReasonOtherWrap').style.display = e.target.value === 'أخرى' ? 'block' : 'none';
+  });
+
+  // قراءة اسم المدرسة وقائمة الفصول (قراءة عامة لا تتطلب تسجيل دخول — بيانات غير حساسة)
+  if(window.__fsReadPublicSettings){
+    window.__fsReadPublicSettings().then(data=>{
+      if(!data) return;
+      if(data.schoolName) $('parentSchoolName').textContent = 'طلب استئذان — ' + data.schoolName;
+      if(Array.isArray(data.classes) && data.classes.length){
+        $('reqClass').innerHTML = data.classes.map(c=>`<option value="${escapeHtmlReq(c)}">${escapeHtmlReq(c)}</option>`).join('');
+      }
+    }).catch(err=> console.error('تعذر قراءة إعدادات المدرسة', err));
+  }
+  if(!$('reqClass').options.length){
+    $('reqClass').innerHTML = '<option value="">اكتب الفصل بخانة اسم الطالب إن لم يظهر هنا</option>';
+  }
+
+  $('btnSendRequest').addEventListener('click', ()=>{
+    const klass = $('reqClass').value;
+    const studentName = $('reqStudent').value.trim();
+    let reason = $('reqReason').value;
+    if(reason === 'أخرى'){
+      const other = $('reqReasonOther').value.trim();
+      if(!other){ $('reqError').textContent = 'يرجى تحديد سبب الاستئذان'; return; }
+      reason = other;
+    }
+    const companionName = $('reqCompanion').value.trim();
+    const companionPhone = $('reqPhone').value.trim();
+    $('reqError').textContent = '';
+    if(!studentName){ $('reqError').textContent = 'يرجى إدخال اسم الطالب'; return; }
+    if(!companionName){ $('reqError').textContent = 'يرجى إدخال اسم الشخص القادم لأخذ الطالب'; return; }
+
+    const now = new Date();
+    const reqData = {
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      createdAt: now.getTime(),
+      date: now.toISOString().slice(0,10),
+      time: now.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit',hour12:true}),
+      klass, studentName, reason, companionName, companionPhone
+    };
+    const btn = $('btnSendRequest');
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري الإرسال...';
+    if(!window.__fsAddRequest){
+      $('reqError').textContent = 'تعذر الاتصال بالخادم، حاولي تحديث الصفحة';
+      btn.disabled = false; btn.textContent = '📨 إرسال الطلب للإدارة';
+      return;
+    }
+    window.__fsAddRequest(reqData).then(()=>{
+      $('reqStudent').value=''; $('reqCompanion').value=''; $('reqPhone').value=''; $('reqReasonOther').value='';
+      $('reqReason').value='ظرف عائلي'; $('reqReasonOtherWrap').style.display='none';
+      $('reqSentMsg').classList.remove('hidden');
+      btn.disabled = false; btn.textContent = '📨 إرسال الطلب للإدارة';
+      setTimeout(()=> $('reqSentMsg').classList.add('hidden'), 6000);
+    }).catch(err=>{
+      console.error(err);
+      $('reqError').textContent = 'تعذر إرسال الطلب، تحقق من الاتصال بالإنترنت وحاولي مرة أخرى';
+      btn.disabled = false; btn.textContent = '📨 إرسال الطلب للإدارة';
+    });
+  });
+}
+
+/* ===== Init ===== */
+if(location.hash === '#request'){
+  document.getElementById('lockScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.add('hidden');
+  document.getElementById('parentRequestScreen').classList.remove('hidden');
+  initParentRequestMode();
+}else{
+  loadData();
+  tickClock();
+}
+</script>
+
+<!-- ============ 🔐 Firebase Authentication + Cloud Firestore (Protected) ============
+     المصادقة الحقيقية تتم عبر شاشة القفل بالأعلى (رقم سري من 6 أرقام)،
+     ويتحقق منها Firebase فعليًا وليس المتصفح فقط. -->
+
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+    updatePassword, reauthenticateWithCredential, EmailAuthProvider
+  } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, getDoc, getDocs
+  } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDqB3no9MWFuuUaGUYXceP7WK7eQPDN2ak",
+    authDomain: "student-exit-system-ba88a.firebaseapp.com",
+    projectId: "student-exit-system-ba88a",
+    storageBucket: "student-exit-system-ba88a.firebasestorage.app",
+    messagingSenderId: "376307647697",
+    appId: "1:376307647697:web:2f54cc6b2ce0b80cd931f0",
+    measurementId: "G-KMTSBP66NM"
+  };
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const settingsRef = doc(db, "exitDashboard", "settings");
+  // كل سجل خروج = مستند مستقل، بدل مصفوفة واحدة، لمنع تعارض الكتابة بين الأجهزة
+  const recordsCol = collection(db, "exitRecords");
+  // طلبات أولياء الأمور الواردة (تُكتب من صفحة عامة بلا تسجيل دخول، وتُقرأ وتُحذف من الإدارة فقط)
+  const requestsCol = collection(db, "exitRequests");
+  let stopRequests = null;
+  // مرجع البنية القديمة (مصفوفة واحدة) — لترحيل أي بيانات سابقة تلقائيًا مرة واحدة
+  const legacyRecordsRef = doc(db, "exitDashboard", "records");
+  let migrated = false;
+
+  let stopSettings = null;
+  let stopRecords = null;
+
+  // حساب Firebase ثابت خلف الكواليس يُستخدم لتفعيل مصادقة حقيقية بدون طلب إيميل من المستخدم.
+  // يجب إنشاؤه مرة واحدة يدويًا من Firebase Console > Authentication > Users
+  // بالبريد التالي وكلمة مرور = الرقم السري الذي تريده (6 أرقام على الأقل).
+  const FIXED_LOGIN_EMAIL = "school@exit-system.local";
+
+  const lockScreen = document.getElementById('lockScreen');
+  const mainApp = document.getElementById('mainApp');
+  const pinInput = document.getElementById('pinInput');
+  const pinError = document.getElementById('pinError');
+  const btnUnlock = document.getElementById('btnUnlock');
+  const btnLock = document.getElementById('btnLock');
+  const statusBox = document.getElementById('cloudStatus');
+
+  function setStatus(text, show=true) {
+    if (!statusBox) return;
+    statusBox.textContent = text;
+    statusBox.style.display = show ? 'block' : 'none';
+  }
+
+  function showLogin() {
+    if(location.hash === '#request') return; // لا تُظهري شاشة القفل فوق شاشة طلب ولي الأمر
+    mainApp.classList.add('hidden');
+    lockScreen.classList.remove('hidden');
+    setStatus('🔒 يلزم تسجيل الدخول', true);
+    setTimeout(() => pinInput && pinInput.focus(), 100);
+  }
+
+  function hideLogin() {
+    lockScreen.classList.add('hidden');
+    mainApp.classList.remove('hidden');
+    pinError.textContent = '';
+    pinInput.value = '';
+  }
+
+  async function login() {
+    const pin = pinInput.value.trim();
+    pinError.textContent = '';
+    if (!/^\d{6,}$/.test(pin)) {
+      pinError.textContent = 'الرقم السري يجب أن يكون 6 أرقام على الأقل';
+      return;
+    }
+    btnUnlock.disabled = true;
+    btnUnlock.textContent = 'جاري الدخول...';
+    try {
+      await signInWithEmailAndPassword(auth, FIXED_LOGIN_EMAIL, pin);
+    } catch (err) {
+      console.error(err);
+      pinError.textContent = 'الرقم السري غير صحيح';
+      pinInput.value = '';
+      pinInput.focus();
+    } finally {
+      btnUnlock.disabled = false;
+      btnUnlock.textContent = 'دخول';
+    }
+  }
+
+  btnUnlock.addEventListener('click', login);
+  pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  btnLock.addEventListener('click', () => signOut(auth));
+
+  // منع بقاء أي سجلات قديمة في التخزين المحلي من نسخة سابقة.
+  try { localStorage.removeItem('exitlog_records'); } catch(e) {}
+
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      if (stopSettings) { stopSettings(); stopSettings = null; }
+      if (stopRecords) { stopRecords(); stopRecords = null; }
+      if (stopRequests) { stopRequests(); stopRequests = null; }
+      window.__onRemoteRecords([]);
+      showLogin();
+      return;
+    }
+
+    hideLogin();
+    setStatus('☁️ متصل بالسحابة — مزامنة فورية بين كل الأجهزة', true);
+
+    // ترحيل تلقائي لمرة واحدة من البنية القديمة (مصفوفة) إلى البنية الجديدة (مستند لكل سجل)
+    if (!migrated) {
+      migrated = true;
+      (async () => {
+        try {
+          const existing = await getDocs(recordsCol);
+          if (existing.empty) {
+            const legacySnap = await getDoc(legacyRecordsRef);
+            if (legacySnap.exists()) {
+              const items = Array.isArray(legacySnap.data().items) ? legacySnap.data().items : [];
+              for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                if (!it || !it.id) continue;
+                await setDoc(doc(recordsCol, it.id), { ...it, createdAt: it.createdAt || (Date.now() - i) });
+              }
+              if (items.length) console.log(`تم ترحيل ${items.length} سجل من البنية القديمة بنجاح`);
+            }
+          }
+        } catch (err) {
+          console.error("تعذر ترحيل السجلات القديمة:", err);
+        }
+      })();
+    }
+
+    // قراءة البيانات الحساسة بعد نجاح المصادقة فقط.
+    stopSettings = onSnapshot(settingsRef, snap => {
+      const data = snap.exists() ? snap.data() : null;
+      if (data && window.__onRemoteSettings) window.__onRemoteSettings(data);
+    }, err => {
+      console.error('تعذر قراءة إعدادات Firebase:', err);
+      setStatus('⚠️ تعذر الوصول إلى إعدادات السحابة', true);
+    });
+
+    stopRecords = onSnapshot(recordsCol, snap => {
+      const items = snap.docs.map(d => d.data());
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      if (window.__onRemoteRecords) window.__onRemoteRecords(items);
+    }, err => {
+      console.error('تعذر قراءة سجلات Firebase:', err);
+      setStatus('⚠️ تعذر الوصول إلى سجلات الاستئذان', true);
+    });
+
+    // طلبات أولياء الأمور المعلّقة — تصل لحظيًا فور إرسال أي ولي أمر لطلبه
+    stopRequests = onSnapshot(requestsCol, snap => {
+      const items = snap.docs.map(d => d.data());
+      items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      if (window.__onRemoteRequests) window.__onRemoteRequests(items);
+    }, err => {
+      console.error('تعذر قراءة طلبات أولياء الأمور:', err);
+    });
+  });
+
+  window.__fsSaveSettings = async function(settingsObj) {
+    if (!auth.currentUser) throw new Error('يجب تسجيل الدخول أولًا');
+    await setDoc(settingsRef, settingsObj);
+  };
+
+  // إضافة سجل واحد فقط (وليس استبدال كل السجلات) — هذا ما يمنع فقدان بيانات
+  // عند تسجيل خروج من أكثر من جهاز في نفس الوقت
+  window.__fsAddRecord = async function(rec) {
+    if (!auth.currentUser) throw new Error('يجب تسجيل الدخول أولًا');
+    await setDoc(doc(recordsCol, rec.id), rec);
+  };
+
+  // حذف سجل واحد فقط
+  window.__fsDeleteRecord = async function(id) {
+    if (!auth.currentUser) throw new Error('يجب تسجيل الدخول أولًا');
+    await deleteDoc(doc(recordsCol, id));
+  };
+
+  // إضافة طلب استئذان من ولي الأمر — بلا تسجيل دخول إطلاقًا (صفحة عامة منفصلة #request)
+  window.__fsAddRequest = async function(reqData) {
+    await setDoc(doc(requestsCol, reqData.id), reqData);
+  };
+
+  // حذف طلب بعد معالجته (قبول أو تجاهل) — يتطلب تسجيل دخول الإدارة
+  window.__fsDeleteRequest = async function(id) {
+    if (!auth.currentUser) throw new Error('يجب تسجيل الدخول أولًا');
+    await deleteDoc(doc(requestsCol, id));
+  };
+
+  // قراءة اسم المدرسة وقائمة الفصول فقط (بيانات غير حساسة) لعرضها بصفحة طلب ولي الأمر
+  // العامة، بدون تسجيل دخول — لا تُستخدم لقراءة أي سجلات أو بيانات طلاب.
+  window.__fsReadPublicSettings = async function() {
+    const snap = await getDoc(settingsRef);
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return { schoolName: data.schoolName || '', classes: Array.isArray(data.classes) ? data.classes : [] };
+  };
+
+  // تغيير الرقم السري فعليًا (وليس محليًا فقط) — يتطلب إعادة تأكيد الرقم الحالي أولًا
+  window.__fsChangePin = async function(currentPin, newPin) {
+    if (!auth.currentUser) throw new Error('يجب تسجيل الدخول أولًا');
+    const credential = EmailAuthProvider.credential(FIXED_LOGIN_EMAIL, currentPin);
+    await reauthenticateWithCredential(auth.currentUser, credential);
+    await updatePassword(auth.currentUser, newPin);
+  };
+</script>
+
+<!--
+  قواعد Firestore المقترحة (محدَّثة لدعم صفحة طلب ولي الأمر العامة #request):
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      // وثيقة الإعدادات فقط: قراءة عامة بلا تسجيل دخول (اسم المدرسة + قائمة الفصول،
+      // لا تحتوي بيانات طلاب) لتظهر بصفحة طلب ولي الأمر — والكتابة تبقى للإدارة فقط.
+      match /exitDashboard/settings {
+        allow read: if true;
+        allow write: if request.auth != null;
+      }
+      // أي وثيقة أخرى تحت exitDashboard (مثل البنية القديمة records) تبقى محمية بالكامل
+      match /exitDashboard/{document} {
+        allow read, write: if request.auth != null && document != 'settings';
+      }
+      match /exitRecords/{document} {
+        allow read, write: if request.auth != null;
+      }
+      // طلبات أولياء الأمور: أي زائر (حتى بلا تسجيل دخول) يقدر يُنشئ طلبًا جديدًا فقط —
+      // لا يقدر يقرأ، يعدّل، أو يحذف أي طلب (حتى طلبه هو نفسه) إلا الإدارة المسجَّلة دخولها.
+      match /exitRequests/{document} {
+        allow create: if true;
+        allow read, update, delete: if request.auth != null;
+      }
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+  }
+
+  يجب تفعيل Authentication > Email/Password، ثم من تبويب Users
+  إنشاء حساب واحد فقط بالبريد التالي (لا يُستخدم فعليًا، مجرد معرّف داخلي):
+    school@exit-system.local
+  وكلمة مرور = الرقم السري الذي تريد أن يدخل به الموظفون (6 أرقام على الأقل).
+  هذا الرقم يمكن تغييره لاحقًا من داخل اللوحة (الإعدادات ⚙️ > الرقم السري)
+  بدون الحاجة للعودة لهذه الصفحة.
+-->
+</body>
+</html>
