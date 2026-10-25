@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>طلب استئذان خروج طالب</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#132B46; --ink-2:#1E3A5C; --paper:#EEF2EE; --card:#FBFBF8;
+    --brass:#C08F32; --brass-2:#DDB05C; --red:#B34435; --line:#D8D6CC;
+    --shadow: 0 8px 24px rgba(19,43,70,.10); --radius: 14px;
+    font-family:'IBM Plex Sans Arabic', 'Tajawal', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(192,143,50,.06), transparent 40%),
+      var(--paper);
+    color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .hidden{display:none !important;}
+  .card{
+    background:var(--card); border-radius:var(--radius); padding:30px 26px; max-width:440px; width:100%;
+    box-shadow:var(--shadow); text-align:right;
+  }
+  .seal{
+    width:60px;height:60px;border-radius:50%;margin:0 auto 12px;
+    background:radial-gradient(circle at 35% 30%, var(--brass-2), var(--brass) 70%);
+    display:flex;align-items:center;justify-content:center;font-size:26px;
+  }
+  h2{margin:0 0 4px;font-family:'Tajawal';font-weight:800;font-size:18px;text-align:center;}
+  .sub{margin:0 0 20px;font-size:12.5px;color:#7A8A82;text-align:center;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:5px;}
+  .field select, .field input{
+    width:100%;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);
+    background:#fff;font-family:inherit;font-size:14px;color:var(--ink);outline:none;transition:.15s;
+  }
+  .field select:focus, .field input:focus{border-color:var(--brass);box-shadow:0 0 0 3px rgba(192,143,50,.15);}
+  .btn{
+    border:none;cursor:pointer;font-family:'Tajawal';font-weight:700;font-size:14.5px;
+    padding:12px 26px;border-radius:9px;transition:.15s;display:inline-flex;align-items:center;gap:8px;
+    width:100%;justify-content:center;
+  }
+  .btn-main{background:var(--ink);color:#fff;}
+  .btn-main:hover{background:var(--ink-2);}
+  .btn-main:disabled{opacity:.6;cursor:default;}
+  .err{min-height:18px;font-size:12.5px;color:var(--red);margin:6px 0;}
+  .sent{
+    text-align:center;margin-top:14px;padding:14px;background:#EAF4F1;border-radius:10px;
+    color:#0E3B36;font-weight:700;font-size:13.5px;
+  }
+  .sent .note{font-weight:400;font-size:12px;margin-top:6px;color:#3C5853;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="seal">🎓</div>
+  <h2 id="schoolTitle">طلب استئذان خروج طالب</h2>
+  <p class="sub">عبّئي البيانات أدناه، وسيصل طلبك فورًا لإدارة المدرسة</p>
+
+  <div class="field">
+    <label>الفصل الدراسي</label>
+    <select id="reqClass"><option value="">جاري تحميل الفصول...</option></select>
+  </div>
+  <div class="field">
+    <label>اسم الطالب / الطالبة</label>
+    <input type="text" id="reqStudent" placeholder="اكتب الاسم الكامل">
+  </div>
+  <div class="field">
+    <label>سبب الاستئذان</label>
+    <select id="reqReason">
+      <option value="ظرف عائلي">ظرف عائلي</option>
+      <option value="موعد طبي">موعد طبي</option>
+      <option value="حالة مرضية">حالة مرضية طارئة</option>
+      <option value="أخرى">أخرى (تحديد)</option>
+    </select>
+  </div>
+  <div class="field hidden" id="reqReasonOtherWrap">
+    <label>تحديد السبب</label>
+    <input type="text" id="reqReasonOther" placeholder="اكتب السبب">
+  </div>
+  <div class="field">
+    <label>اسم الشخص الذي سيأتي لأخذ الطالب</label>
+    <input type="text" id="reqCompanion" placeholder="اسم المرافق">
+  </div>
+  <div class="field">
+    <label>جوالك (اختياري، لتواصل الإدارة معك عند الحاجة)</label>
+    <input type="tel" id="reqPhone" placeholder="05xxxxxxxx" dir="ltr">
+  </div>
+  <div class="err" id="reqError"></div>
+  <button class="btn btn-main" id="btnSendRequest">📨 إرسال الطلب للإدارة</button>
+  <div class="sent hidden" id="reqSentMsg">
+    ✅ تم إرسال طلبك بنجاح، بانتظار موافقة الإدارة.
+    <div class="note">يمكنك إغلاق هذه الصفحة الآن، أو إرسال طلب آخر لطالب ثانٍ.</div>
+  </div>
+</div>
+
+<!-- ============ 🔐 اتصال محدود جدًا بـ Firebase: إضافة طلب جديد فقط، لا قراءة ولا تعديل ولا حذف لأي بيانات ============ -->
+<script type="module">
+  import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDqB3no9MWFuuUaGUYXceP7WK7eQPDN2ak",
+    authDomain: "student-exit-system-ba88a.firebaseapp.com",
+    projectId: "student-exit-system-ba88a",
+    storageBucket: "student-exit-system-ba88a.firebasestorage.app",
+    messagingSenderId: "376307647697",
+    appId: "1:376307647697:web:2f54cc6b2ce0b80cd931f0",
+    measurementId: "G-KMTSBP66NM"
+  };
+
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const settingsRef = doc(db, "exitDashboard", "settings");
+  const requestsCol = "exitRequests";
+
+  const $ = id => document.getElementById(id);
+
+  function escapeHtml(str){
+    return String(str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // قراءة اسم المدرسة وقائمة الفصول فقط (بيانات غير حساسة، مسموح بقراءتها للجميع حسب قواعد Firestore)
+  getDoc(settingsRef).then(snap=>{
+    if(!snap.exists()) return;
+    const data = snap.data();
+    if(data.schoolName) $('schoolTitle').textContent = 'طلب استئذان — ' + data.schoolName;
+    if(Array.isArray(data.classes) && data.classes.length){
+      $('reqClass').innerHTML = data.classes.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }else{
+      $('reqClass').innerHTML = '<option value="">اكتب الفصل بخانة اسم الطالب إن لم يظهر هنا</option>';
+    }
+  }).catch(err=>{
+    console.error('تعذر قراءة إعدادات المدرسة', err);
+    $('reqClass').innerHTML = '<option value="">تعذر تحميل الفصول — تواصلي مع الإدارة</option>';
+  });
+
+  $('reqReason').addEventListener('change', e=>{
+    $('reqReasonOtherWrap').classList.toggle('hidden', e.target.value !== 'أخرى');
+  });
+
+  $('btnSendRequest').addEventListener('click', ()=>{
+    const klass = $('reqClass').value;
+    const studentName = $('reqStudent').value.trim();
+    let reason = $('reqReason').value;
+    if(reason === 'أخرى'){
+      const other = $('reqReasonOther').value.trim();
+      if(!other){ $('reqError').textContent = 'يرجى تحديد سبب الاستئذان'; return; }
+      reason = other;
+    }
+    const companionName = $('reqCompanion').value.trim();
+    const companionPhone = $('reqPhone').value.trim();
+    $('reqError').textContent = '';
+    if(!studentName){ $('reqError').textContent = 'يرجى إدخال اسم الطالب'; return; }
+    if(!companionName){ $('reqError').textContent = 'يرجى إدخال اسم الشخص القادم لأخذ الطالب'; return; }
+
+    const now = new Date();
+    const reqData = {
+      id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      createdAt: now.getTime(),
+      date: now.toISOString().slice(0,10),
+      time: now.toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit',hour12:true}),
+      klass, studentName, reason, companionName, companionPhone
+    };
+    const btn = $('btnSendRequest');
+    btn.disabled = true;
+    btn.textContent = '⏳ جاري الإرسال...';
+    setDoc(doc(db, requestsCol, reqData.id), reqData).then(()=>{
+      $('reqStudent').value=''; $('reqCompanion').value=''; $('reqPhone').value=''; $('reqReasonOther').value='';
+      $('reqReason').value='ظرف عائلي'; $('reqReasonOtherWrap').classList.add('hidden');
+      $('reqSentMsg').classList.remove('hidden');
+      btn.disabled = false; btn.textContent = '📨 إرسال الطلب للإدارة';
+      setTimeout(()=> $('reqSentMsg').classList.add('hidden'), 6000);
+    }).catch(err=>{
+      console.error(err);
+      $('reqError').textContent = 'تعذر إرسال الطلب، تحقق من الاتصال بالإنترنت وحاولي مرة أخرى';
+      btn.disabled = false; btn.textContent = '📨 إرسال الطلب للإدارة';
+    });
+  });
+</script>
+</body>
+</html>
